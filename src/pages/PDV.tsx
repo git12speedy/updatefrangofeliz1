@@ -911,20 +911,17 @@ export default function PDV() {
 
           <script>
             window.onload = function() {
-              window.print();
+              setTimeout(function() {
+                window.print();
+              }, 250);
             };
             
             // Fecha a janela automaticamente após imprimir ou cancelar
             window.onafterprint = function() {
-              window.close();
-            };
-            
-            // Fallback para navegadores que não suportam onafterprint
-            if (!window.matchMedia) {
               setTimeout(function() {
                 window.close();
-              }, 1000);
-            }
+              }, 100);
+            };
           </script>
         </body>
       </html>
