@@ -359,22 +359,45 @@ export default function OrderPanel() {
               font-family: 'Courier New', monospace;
               max-width: 300px;
               margin: 20px auto;
-              padding: 10px;
+              padding: 0;
               font-size: 12px;
             }
             .header {
+              text-align: center;
+              background-color: #2a2a2a;
+              color: white;
+              padding: 15px 10px;
+              margin-bottom: 10px;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 18px;
+              font-weight: bold;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .header .phone {
+              margin-top: 5px;
+              font-size: 14px;
+            }
+            .order-info {
+              padding: 10px;
               text-align: center;
               border-bottom: 2px dashed #000;
               padding-bottom: 10px;
               margin-bottom: 10px;
             }
-            .header h1 {
-              margin: 0;
-              font-size: 20px;
+            .order-info div {
+              margin: 2px 0;
+              font-size: 11px;
+            }
+            .order-info .order-number {
+              font-weight: bold;
+              font-size: 14px;
             }
             .section {
               margin: 10px 0;
-              padding: 5px 0;
+              padding: 5px 10px;
             }
             .section-title {
               font-weight: bold;
@@ -394,6 +417,7 @@ export default function OrderPanel() {
               font-weight: bold;
               text-align: right;
               margin-top: 10px;
+              padding: 0 10px;
             }
             .footer {
               text-align: center;
@@ -405,21 +429,20 @@ export default function OrderPanel() {
             @media print {
               body {
                 margin: 0;
-                padding: 10px;
+                padding: 0;
               }
             }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1>PEDIDO #${order.order_number}</h1>
-            <div>${orderDate}</div>
+            <h1>${customerName.toUpperCase()}</h1>
+            ${customerPhone !== 'N/A' ? `<div class="phone">${customerPhone}</div>` : ''}
           </div>
 
-          <div class="section">
-            <div class="section-title">CLIENTE</div>
-            <div>${customerName}</div>
-            <div>${customerPhone}</div>
+          <div class="order-info">
+            <div class="order-number">PEDIDO #${order.order_number}</div>
+            <div>${orderDate}</div>
           </div>
 
           ${order.delivery ? `
