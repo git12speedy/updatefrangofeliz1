@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Plus, Trash2, Edit, Copy, CalendarDays, Upload, FileText, X, Loader2, Image, Video, Music, File } from "lucide-react";
+import { Plus, Trash2, Edit, Copy, CalendarDays, Upload, FileText, X, Loader2, Image, Video, Music, File, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO, addMonths, isBefore } from "date-fns";
@@ -86,6 +86,23 @@ export default function TaskCard({ task, index, onUpdateTask, onDeleteTask, onDu
     setIsRecurring(task.is_recurring);
     setRecurrenceInterval(task.recurrence_interval || 'monthly');
     setLastRecurrenceDate(task.last_recurrence_date ? parseISO(task.last_recurrence_date) : undefined);
+  };
+
+  const handleToggleCompleted = async () => {
+    const newCompletedStatus = !task.is_completed;
+    const { error } = await supabase
+      .from("tasks")
+      .update({ is_completed: newCompletedStatus })
+      .eq("id", task.id);
+
+    if (error) {
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível atualizar a tarefa." });
+    } else {
+      onUpdateTask({ ...task, is_completed: newCompletedStatus });
+      toast({ 
+        title: newCompletedStatus ? "Tarefa concluída!" : "Tarefa reaberta!",
+      });
+    }
   };
 
   const handleSaveTask = async () => {
@@ -265,11 +282,22 @@ export default function TaskCard({ task, index, onUpdateTask, onDeleteTask, onDu
           className="mb-3 bg-card shadow-sm hover:shadow-md transition-shadow cursor-grab"
         >
           <CardHeader className="p-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-base font-semibold">{task.title}</CardTitle>
+            <CardTitle className={`text-base font-semibold ${task.is_completed ? 'line-through text-muted-foreground' : ''}`}>
+              {task.title}
+            </CardTitle>
             <div className="flex gap-1">
               {task.is_recurring && (
                 <CalendarDays className="h-4 w-4 text-muted-foreground" />
               )}
+              <Button 
+                variant={task.is_completed ? "default" : "ghost"} 
+                size="sm" 
+                className={`h-6 w-6 p-0 ${task.is_completed ? 'bg-green-500 hover:bg-green-600' : ''}`}
+                onClick={handleToggleCompleted}
+                title={task.is_completed ? "Marcar como não concluída" : "Marcar como concluída"}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleOpenEditDialog}>
                 <Edit className="h-4 w-4" />
               </Button>
