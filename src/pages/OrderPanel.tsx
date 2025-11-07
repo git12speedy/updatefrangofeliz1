@@ -364,10 +364,13 @@ export default function OrderPanel() {
             }
             .header {
               text-align: center;
-              background-color: #2a2a2a;
+              background-color: #2a2a2a !important;
               color: white;
               padding: 15px 10px;
               margin-bottom: 10px;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+              color-adjust: exact;
             }
             .header h1 {
               margin: 0;
@@ -430,6 +433,11 @@ export default function OrderPanel() {
               body {
                 margin: 0;
                 padding: 0;
+              }
+              .header {
+                background-color: #2a2a2a !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
               }
             }
           </style>
