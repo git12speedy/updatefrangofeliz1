@@ -383,28 +383,27 @@ export default function OrderPanel() {
               margin-top: 5px;
               font-size: 14px;
             }
-            .order-info {
+            .content {
               padding: 10px;
-              text-align: center;
-              border-bottom: 2px dashed #000;
-              padding-bottom: 10px;
-              margin-bottom: 10px;
+            }
+            .order-info {
+              margin-bottom: 5px;
             }
             .order-info div {
               margin: 2px 0;
-              font-size: 11px;
-            }
-            .order-info .order-number {
-              font-weight: bold;
-              font-size: 14px;
+              font-size: 12px;
             }
             .section {
-              margin: 10px 0;
-              padding: 5px 10px;
+              margin: 5px 0;
+              padding: 5px 0;
             }
             .section-title {
               font-weight: bold;
-              margin-bottom: 5px;
+              margin-bottom: 3px;
+              font-size: 12px;
+            }
+            .section div {
+              font-size: 12px;
             }
             .item {
               display: flex;
@@ -412,21 +411,17 @@ export default function OrderPanel() {
               margin: 3px 0;
             }
             .divider {
-              border-top: 1px dashed #000;
-              margin: 10px 0;
+              border-top: 1px dashed #333;
+              margin: 8px 0;
             }
             .total {
-              font-size: 16px;
+              font-size: 14px;
               font-weight: bold;
-              text-align: right;
-              margin-top: 10px;
-              padding: 0 10px;
+              margin-top: 8px;
             }
             .footer {
               text-align: center;
-              margin-top: 15px;
-              padding-top: 10px;
-              border-top: 2px dashed #000;
+              margin-top: 10px;
               font-size: 11px;
             }
             @media print {
@@ -448,60 +443,65 @@ export default function OrderPanel() {
             ${customerPhone !== 'N/A' ? `<div class="phone">${customerPhone}</div>` : ''}
           </div>
 
-          <div class="order-info">
-            <div class="order-number">PEDIDO #${order.order_number}</div>
-            <div>${orderDate}</div>
-          </div>
-
-          ${order.delivery ? `
-            <div class="section">
-              <div class="section-title">ENTREGA</div>
-              <div>${order.delivery_address}, ${order.delivery_number}</div>
-              ${order.delivery_reference ? `<div>Ref: ${order.delivery_reference}</div>` : ''}
+          <div class="content">
+            <div class="order-info">
+              <div>Pedido #${order.order_number}</div>
+              <div>${orderDate}</div>
             </div>
-          ` : ''}
 
-          ${order.pickup_time ? `
+            ${order.delivery ? `
+              <div class="divider"></div>
+              <div class="section">
+                <div class="section-title">ENTREGA</div>
+                <div>${order.delivery_address}, ${order.delivery_number}</div>
+                ${order.delivery_reference ? `<div>Ref: ${order.delivery_reference}</div>` : ''}
+              </div>
+            ` : ''}
+
+            ${order.pickup_time ? `
+              <div class="divider"></div>
+              <div class="section">
+                <div class="section-title">RETIRADA</div>
+                <div>Horário: ${order.pickup_time}</div>
+              </div>
+            ` : ''}
+
+            ${order.reservation_date ? `
+              <div class="divider"></div>
+              <div class="section">
+                <div class="section-title">RESERVA</div>
+                <div>Data: ${new Date(order.reservation_date).toLocaleDateString('pt-BR')}</div>
+              </div>
+            ` : ''}
+
+            <div class="divider"></div>
+
             <div class="section">
-              <div class="section-title">RETIRADA</div>
-              <div>Horário: ${order.pickup_time}</div>
+              <div class="section-title">ITENS DO PEDIDO</div>
+              ${order.order_items.map(item => {
+                const isRedeemed = item.product_price === 0 && item.subtotal === 0;
+                return `
+                  <div class="item">
+                    <span>${item.quantity}x ${item.product_name}${item.variation_name ? ` (${item.variation_name})` : ''}${isRedeemed ? ' ⭐' : ''}</span>
+                    <span>${isRedeemed ? 'RESGATADO' : `R$ ${item.subtotal.toFixed(2)}`}</span>
+                  </div>
+                `;
+              }).join('')}
             </div>
-          ` : ''}
 
-          ${order.reservation_date ? `
+            <div class="divider"></div>
+
             <div class="section">
-              <div class="section-title">RESERVA</div>
-              <div>Data: ${new Date(order.reservation_date).toLocaleDateString('pt-BR')}</div>
+              <div><strong>Pagamento:</strong> ${order.payment_method}</div>
             </div>
-          ` : ''}
 
-          <div class="divider"></div>
+            <div class="total">
+              TOTAL: R$ ${order.total.toFixed(2)}
+            </div>
 
-          <div class="section">
-            <div class="section-title">ITENS DO PEDIDO</div>
-            ${order.order_items.map(item => {
-              const isRedeemed = item.product_price === 0 && item.subtotal === 0;
-              return `
-                <div class="item">
-                  <span>${item.quantity}x ${item.product_name}${item.variation_name ? ` (${item.variation_name})` : ''}${isRedeemed ? ' ⭐' : ''}</span>
-                  <span>${isRedeemed ? 'RESGATADO' : `R$ ${item.subtotal.toFixed(2)}`}</span>
-                </div>
-              `;
-            }).join('')}
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="section">
-            <div><strong>Pagamento:</strong> ${order.payment_method}</div>
-          </div>
-
-          <div class="total">
-            TOTAL: R$ ${order.total.toFixed(2)}
-          </div>
-
-          <div class="footer">
-            Obrigado pela preferência!
+            <div class="footer">
+              Obrigado pela preferência!
+            </div>
           </div>
 
           <script>
