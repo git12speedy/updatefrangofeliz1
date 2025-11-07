@@ -31,6 +31,7 @@ export default function Marketing() {
   const [showEditBannerDialog, setShowEditBannerDialog] = useState(false);
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [editBannerUrl, setEditBannerUrl] = useState("");
+  const [showConfigureBannersDialog, setShowConfigureBannersDialog] = useState(false);
 
   // Monitor Settings states
   const [monitorSettings, setMonitorSettings] = useState<MonitorSettings>({
@@ -297,76 +298,95 @@ export default function Marketing() {
             </Button>
           </form>
 
-          {/* Lista de Banners */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Banners Ativos ({banners.length})</h3>
+          {/* Botão para Configurar Banners */}
+          <div className="space-y-2">
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => setShowConfigureBannersDialog(true)}
+            >
+              <Settings2 className="h-4 w-4 mr-2" />
+              Configurar Banners ({banners.length})
+            </Button>
+            <p className="text-sm text-muted-foreground text-center">
+              {banners.length === 0 ? "Nenhum banner cadastrado." : `${banners.length} ${banners.length === 1 ? 'banner ativo' : 'banners ativos'}`}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dialog para Configurar Banners Ativos */}
+      <Dialog open={showConfigureBannersDialog} onOpenChange={setShowConfigureBannersDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Banners Ativos ({banners.length})</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-4 max-h-[60vh] overflow-y-auto">
             {banners.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 Nenhum banner cadastrado.
               </p>
             ) : (
-              <div className="space-y-3">
-                {banners.map((banner, index) => (
-                  <div 
-                    key={banner.id} 
-                    className="flex items-center gap-4 p-3 bg-accent rounded-lg border border-border"
-                  >
-                    <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-md">
-                      <img 
-                        src={banner.url} 
-                        alt={`Banner ${index + 1}`} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder.svg"; // Fallback image
-                        }}
-                      />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">Banner #{index + 1}</p>
-                      <p className="text-xs text-muted-foreground truncate">{banner.url}</p>
-                    </div>
+              banners.map((banner, index) => (
+                <div 
+                  key={banner.id} 
+                  className="flex items-center gap-4 p-3 bg-accent rounded-lg border border-border"
+                >
+                  <div className="w-16 h-16 flex-shrink-0 overflow-hidden rounded-md">
+                    <img 
+                      src={banner.url} 
+                      alt={`Banner ${index + 1}`} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = "/placeholder.svg"; // Fallback image
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">Banner #{index + 1}</p>
+                    <p className="text-xs text-muted-foreground truncate">{banner.url}</p>
+                  </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {/* Botões de Ordenação */}
-                      <div className="flex flex-col gap-1">
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-6 w-6 p-0"
-                          onClick={() => handleMoveBanner(banner.id, 'up')}
-                          disabled={index === 0}
-                        >
-                          <ArrowUp className="h-3 w-3" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-6 w-6 p-0"
-                          onClick={() => handleMoveBanner(banner.id, 'down')}
-                          disabled={index === banners.length - 1}
-                        >
-                          <ArrowDown className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      
-                      {/* Botão de Editar Banner */}
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => openEditBannerDialog(banner)}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Botões de Ordenação */}
+                    <div className="flex flex-col gap-1">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-6 w-6 p-0"
+                        onClick={() => handleMoveBanner(banner.id, 'up')}
+                        disabled={index === 0}
                       >
-                        <Settings2 className="h-4 w-4" />
+                        <ArrowUp className="h-3 w-3" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-6 w-6 p-0"
+                        onClick={() => handleMoveBanner(banner.id, 'down')}
+                        disabled={index === banners.length - 1}
+                      >
+                        <ArrowDown className="h-3 w-3" />
                       </Button>
                     </div>
+                    
+                    {/* Botão de Editar Banner */}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => openEditBannerDialog(banner)}
+                    >
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))
             )}
           </div>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog para Editar Banner */}
       <Dialog open={showEditBannerDialog} onOpenChange={setShowEditBannerDialog}>
