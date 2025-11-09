@@ -663,12 +663,13 @@ export default function Totem() {
     setShowCustomerNameDialog(true);
   };
 
-  const finishOrder = async () => {
+  const finishOrder = async (customerNameOverride?: string) => {
     console.log("--- finishOrder started (Totem) ---");
     console.log("Current storeId:", storeId);
     console.log("Is delivery:", isDelivery);
     console.log("Reservation Date:", reservationDate ? format(reservationDate, "yyyy-MM-dd HH:mm:ss") : "null");
     console.log("Pickup Time:", pickupTime);
+    console.log("Customer name override:", customerNameOverride);
 
     // Move calculations to the top
     const monetarySubtotal = cart.reduce((sum, item) => 
@@ -716,6 +717,7 @@ export default function Totem() {
     // --- Lógica de Verificação/Criação de Cliente (OPCIONAL) ---
     let customerIdForOrder: string | null = null;
     let currentCustomer: Customer | null = customer; // Use the customer state if already loaded by useEffect
+    const finalCustomerName = customerNameOverride || name; // Usar o nome passado como parâmetro ou o estado
 
     if (phone && phone.length >= 10) {
       if (!currentCustomer) { // If customer not found by useEffect, try to find/create now
@@ -728,10 +730,10 @@ export default function Totem() {
 
         if (existingCustomer) {
           currentCustomer = existingCustomer as unknown as Customer;
-        } else if (name) { // Only create if name is provided
+        } else if (finalCustomerName) { // Only create if name is provided
           const { data: newCustomer, error: newCustomerError } = await supabase
             .from("customers" as any)
-            .insert({ phone, name, points: 0, store_id: storeId })
+            .insert({ phone, name: finalCustomerName, points: 0, store_id: storeId })
             .select()
             .single();
 
@@ -818,7 +820,7 @@ export default function Totem() {
         store_id: storeId,
         order_number: orderNumber,
         customer_id: customerIdForOrder, // Usar o customerIdForOrder (pode ser null)
-        customer_name: name || null, // Salvar o nome digitado mesmo sem customer_id
+        customer_name: finalCustomerName || null, // Salvar o nome digitado mesmo sem customer_id
         source: "totem",
         total: totalMonetary, // Usar o total monetário
         payment_method: finalPaymentMethod, // Usar a string combinada
@@ -1371,11 +1373,12 @@ export default function Totem() {
                       return;
                     }
                   }
-                  if (tempCustomerName.trim()) {
-                    setName(tempCustomerName);
+                  const nameToUse = tempCustomerName.trim();
+                  if (nameToUse) {
+                    setName(nameToUse);
                   }
                   setShowCustomerNameDialog(false);
-                  finishOrder();
+                  finishOrder(nameToUse || undefined);
                 }
               }}
             />
@@ -1404,11 +1407,12 @@ export default function Totem() {
                       return;
                     }
                   }
-                  if (tempCustomerName.trim()) {
-                    setName(tempCustomerName);
+                  const nameToUse = tempCustomerName.trim();
+                  if (nameToUse) {
+                    setName(nameToUse);
                   }
                   setShowCustomerNameDialog(false);
-                  finishOrder();
+                  finishOrder(nameToUse || undefined);
                 }}
               >
                 OK
