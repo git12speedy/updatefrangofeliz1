@@ -647,8 +647,20 @@ export default function Totem() {
       return;
     }
 
-    // Abrir popup de nome
-    setShowCustomerNameDialog(true);
+    // Se o cliente já está identificado (tem telefone e customer existe), finalizar direto
+    if (customer) {
+      finishOrder();
+      return;
+    }
+
+    // Se tem telefone mas não tem cliente (novo cliente) e não tem nome, abrir popup
+    if (phone && phone.length >= 10 && !customer && !name) {
+      setShowCustomerNameDialog(true);
+      return;
+    }
+
+    // Em qualquer outro caso (sem telefone, ou com nome já preenchido), finalizar direto
+    finishOrder();
   };
 
   const finishOrder = async () => {
