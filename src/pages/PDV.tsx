@@ -744,7 +744,7 @@ export default function PDV() {
       return;
     }
 
-    const customerName = customer?.name || 'Cliente Anônimo';
+    const customerNameForOrder = customer?.name || customerName || 'Cliente Anônimo';
     const customerPhone = phone || 'N/A';
     const orderDate = new Date().toLocaleDateString('pt-BR', { 
       day: '2-digit', 
@@ -844,7 +844,7 @@ export default function PDV() {
         </head>
         <body>
           <div class="header">
-            <h1>${customerName.toUpperCase()}</h1>
+            <h1>${customerNameForOrder.toUpperCase()}</h1>
             ${customerPhone !== 'N/A' ? `<div class="phone">${customerPhone}</div>` : ''}
           </div>
 
@@ -1714,6 +1714,26 @@ export default function PDV() {
       </div>
 
       <div className="space-y-4">
+        <Card className="shadow-soft">
+          <CardHeader>
+            <CardTitle>Nome do Cliente</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                id="customer-name-input"
+                type="text"
+                placeholder="Nome do cliente (opcional)"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Digite o nome do cliente mesmo sem número de telefone
+            </p>
+          </CardContent>
+        </Card>
+
         <Card className="shadow-soft">
           <CardHeader>
             <CardTitle>Cliente Fidelidade</CardTitle>

@@ -124,6 +124,8 @@ export default function Totem() {
   const [showSelectVariationDialog, setShowSelectVariationDialog] = useState(false); // Novo estado
   const [productToSelectVariation, setProductToSelectVariation] = useState<Product | null>(null); // Produto para selecionar variação
   const [selectedVariationForProduct, setSelectedVariationForProduct] = useState<Variation | null>(null); // Variação selecionada no modal
+  const [showCustomerNameDialog, setShowCustomerNameDialog] = useState(false); // Novo estado para popup de nome
+  const [tempCustomerName, setTempCustomerName] = useState(""); // Nome temporário para o popup
   
   // New states for category filter
   const [categories, setCategories] = useState<Category[]>([]);
@@ -620,6 +622,33 @@ export default function Totem() {
     }
 
     return true;
+  };
+
+  // Nova função para abrir o popup de nome e depois finalizar
+  const handleFinishOrderClick = () => {
+    // Validações iniciais
+    const monetarySubtotal = cart.reduce((sum, item) => 
+      sum + (item.isRedeemedWithPoints ? 0 : (item.price * item.quantity)), 0
+    );
+    const totalMonetary = monetarySubtotal;
+
+    if (!isOrderValid()) {
+      if (cart.length === 0) {
+        toast({ variant: "destructive", title: "Carrinho vazio" });
+      } else if (totalMonetary > 0 && !paymentMethod) {
+        toast({ variant: "destructive", title: "Selecione forma de pagamento" });
+      } else if (!reservationDate) {
+        toast({ variant: "destructive", title: "Data obrigatória", description: "Selecione a data de retirada/entrega" });
+      } else if (!isStoreOpen(reservationDate, pickupTime || null)) {
+        toast({ variant: "destructive", title: "Loja fechada", description: "A loja não está aberta neste dia ou horário." });
+      } else if (!isSameDay(reservationDate, new Date()) && !pickupTime) {
+        toast({ variant: "destructive", title: "Horário obrigatório", description: "Para pedidos futuros, selecione o horário de retirada." });
+      }
+      return;
+    }
+
+    // Abrir popup de nome
+    setShowCustomerNameDialog(true);
   };
 
   const finishOrder = async () => {
@@ -1246,7 +1275,7 @@ export default function Totem() {
                           Total Monetário: R$ {totalMonetary.toFixed(2)}
                         </div>
 
-                        <Button onClick={finishOrder} className="w-full h-12 text-xl" disabled={!isOrderValid()}>
+                        <Button onClick={handleFinishOrderClick} className="w-full h-12 text-xl" disabled={!isOrderValid()}>
                           Finalizar Pedido
                         </Button>
                       </div>
@@ -1297,6 +1326,63 @@ export default function Totem() {
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para nome do cliente */}
+      <Dialog open={showCustomerNameDialog} onOpenChange={setShowCustomerNameDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Nome do Cliente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-muted-foreground">
+              Digite seu nome para identificarmos seu pedido:
+            </p>
+            <Input
+              id="customer-name-dialog-input"
+              type="text"
+              placeholder="Seu nome (opcional)"
+              value={tempCustomerName}
+              onChange={(e) => setTempCustomerName(e.target.value)}
+              className="text-lg h-12"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (tempCustomerName.trim()) {
+                    setName(tempCustomerName);
+                  }
+                  setShowCustomerNameDialog(false);
+                  finishOrder();
+                }
+              }}
+            />
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 h-12 text-lg"
+                onClick={() => {
+                  setTempCustomerName("");
+                  setShowCustomerNameDialog(false);
+                  finishOrder();
+                }}
+              >
+                Pular
+              </Button>
+              <Button
+                className="flex-1 h-12 text-lg"
+                onClick={() => {
+                  if (tempCustomerName.trim()) {
+                    setName(tempCustomerName);
+                  }
+                  setShowCustomerNameDialog(false);
+                  finishOrder();
+                }}
+              >
+                OK
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
