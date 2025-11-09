@@ -40,6 +40,7 @@ interface Order {
   pickup_time?: string;
   reservation_date?: string;
   customer_id?: string;
+  customer_name?: string; // Nome do cliente informado diretamente
   customers?: {
     name: string;
     phone: string;
@@ -339,7 +340,7 @@ export default function OrderPanel() {
       return;
     }
 
-    const customerName = order.customers?.name || 'Cliente Anônimo';
+    const customerName = order.customers?.name || order.customer_name || 'Cliente Anônimo';
     const customerPhone = order.customers?.phone || 'N/A';
     const orderDate = new Date(order.created_at).toLocaleDateString('pt-BR', { 
       day: '2-digit', 
@@ -683,7 +684,7 @@ export default function OrderPanel() {
                 </div>
                 {columnOrders.map((order) => {
                   const isNew = newOrderIds.includes(order.id);
-                  const customerName = order.customers?.name || 'Cliente Anônimo';
+                  const customerName = order.customers?.name || order.customer_name || 'Cliente Anônimo';
                   const pickupTime = order.pickup_time;
                   const isReservationOrder = !!order.reservation_date; // Verifica se é um pedido de reserva
                   const formattedDate = order.reservation_date ? format(new Date(order.reservation_date), 'dd/MM', { locale: ptBR }) : null;

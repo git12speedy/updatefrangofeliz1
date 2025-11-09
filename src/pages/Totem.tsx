@@ -806,6 +806,7 @@ export default function Totem() {
         store_id: storeId,
         order_number: orderNumber,
         customer_id: customerIdForOrder, // Usar o customerIdForOrder (pode ser null)
+        customer_name: name || null, // Salvar o nome digitado mesmo sem customer_id
         source: "totem",
         total: totalMonetary, // Usar o total monetário
         payment_method: finalPaymentMethod, // Usar a string combinada

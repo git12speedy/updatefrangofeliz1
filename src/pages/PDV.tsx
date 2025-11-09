@@ -1151,6 +1151,7 @@ export default function PDV() {
         store_id: profile.store_id,
         order_number: orderNumber,
         customer_id: customerId,
+        customer_name: customerName || null, // Salvar o nome digitado mesmo sem customer_id
         source,
         total: totalMonetary, // Usar o total monetário
         payment_method: finalPaymentMethod, // Usar a string combinada

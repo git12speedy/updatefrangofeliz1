@@ -39,6 +39,7 @@ interface Order {
   pickup_time?: string;
   reservation_date?: string;
   customer_id?: string;
+  customer_name?: string; // Nome do cliente informado diretamente
   customers?: {
     name: string;
     phone: string;
@@ -502,7 +503,7 @@ export default function Monitor() {
                   </div>
                   {columnOrders.length > 0 ? columnOrders.map((order) => {
                     const isNew = newOrderIds.includes(order.id);
-                    const customerName = order.customers?.name || 'Cliente Anônimo';
+                    const customerName = order.customers?.name || order.customer_name || 'Cliente Anônimo';
                     const pickupTime = order.pickup_time;
                     const isReservationOrder = !!order.reservation_date;
                     const formattedDate = order.reservation_date ? format(new Date(order.reservation_date), 'dd/MM', { locale: ptBR }) : null;
