@@ -41,6 +41,7 @@ interface Order {
   reservation_date?: string;
   customer_id?: string;
   customer_name?: string; // Nome do cliente informado diretamente
+  notes?: string; // Observações do cliente
   customers?: {
     name: string;
     phone: string;
@@ -395,16 +396,10 @@ export default function OrderPanel() {
   };
 
   const handlePrintOrder = (order: Order) => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({
-        variant: "destructive",
-        title: "Erro ao imprimir",
-        description: "Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-ups está desativado.",
-      });
-      return;
-    }
-
+    // Detectar se é um dispositivo móvel/Android
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    
     const customerName = order.customers?.name || order.customer_name || 'Cliente Anônimo';
     const customerPhone = order.customers?.phone || 'N/A';
     const orderDate = new Date(order.created_at).toLocaleDateString('pt-BR', { 
@@ -583,6 +578,14 @@ export default function OrderPanel() {
 
             <div class="divider"></div>
 
+            ${order.notes ? `
+              <div class="section">
+                <div class="section-title">OBSERVAÇÃO</div>
+                <div>${order.notes}</div>
+              </div>
+              <div class="divider"></div>
+            ` : ''}
+
             <div class="section">
               <div><strong>Pagamento:</strong> ${order.payment_method}</div>
             </div>
@@ -614,8 +617,46 @@ export default function OrderPanel() {
       </html>
     `;
 
-    printWindow.document.write(printContent);
-    printWindow.document.close();
+    // Para dispositivos móveis/Android, usar iframe
+    if (isMobile || isAndroid) {
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+      
+      const iframeDoc = iframe.contentWindow?.document;
+      if (iframeDoc) {
+        iframeDoc.open();
+        iframeDoc.write(printContent);
+        iframeDoc.close();
+        
+        // Aguardar o carregamento e imprimir
+        setTimeout(() => {
+          iframe.contentWindow?.print();
+          // Remover iframe após impressão
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+          }, 100);
+        }, 500);
+      }
+    } else {
+      // Para desktop, usar window.open
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast({
+          variant: "destructive",
+          title: "Erro ao imprimir",
+          description: "Não foi possível abrir a janela de impressão. Verifique se o bloqueador de pop-ups está desativado.",
+        });
+        return;
+      }
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+    }
   };
 
   const getStatusBadge = (status: Enums<'order_status'>) => {
@@ -858,6 +899,12 @@ export default function OrderPanel() {
                                       );
                                     })}
                                   </div>
+                                  {order.notes && (
+                                    <div className="pt-2 border-t">
+                                      <strong>Observação:</strong>
+                                      <p className="mt-1 text-muted-foreground">{order.notes}</p>
+                                    </div>
+                                  )}
                                   <div className="flex gap-2 mt-4">
                                     {order.delivery && motoboyWhatsappNumber && (
                                       <Button

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -118,6 +119,7 @@ export default function Totem() {
   const [pickupTime, setPickupTime] = useState<string>("");
   const [needsChange, setNeedsChange] = useState(false);
   const [changeFor, setChangeFor] = useState("");
+  const [notes, setNotes] = useState(""); // Observações do cliente
   const [showSuccessScreen, setShowSuccessScreen] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [lastOrderNumber, setLastOrderNumber] = useState("");
@@ -833,6 +835,7 @@ export default function Totem() {
         delivery_number: null,
         delivery_reference: null,
         delivery_cep: null,
+        notes: notes || null, // Observações do cliente
         change_for: paymentMethod === "dinheiro" && needsChange ? parseFloat(changeFor) : null,
         cash_register_id: cashRegisterIdForOrder, // Assign cash register ID here
         status: initialStatus, // Usar o status inicial dinâmico
@@ -1243,6 +1246,17 @@ export default function Totem() {
                             )}
                           </>
                        )}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="notes">Observação</Label>
+                          <Textarea
+                            id="notes"
+                            placeholder="Ex: menos sal, mais assado, ao ponto, entregar no portão..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            className="min-h-[80px] text-base"
+                          />
+                        </div>
 
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">

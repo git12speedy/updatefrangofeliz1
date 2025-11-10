@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -191,6 +192,7 @@ export default function CustomerStore() {
   const [isDelivery, setIsDelivery] = useState(false);
   const [needsChange, setNeedsChange] = useState(false);
   const [changeFor, setChangeFor] = useState("");
+  const [notes, setNotes] = useState(""); // Observações do cliente
   const [address, setAddress] = useState("");
   const [number, setNumber] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
@@ -1252,6 +1254,7 @@ export default function CustomerStore() {
         delivery_cep: isDelivery && !skipCep ? cep : null,
         change_for: paymentMethod === "dinheiro" && needsChange ? parseFloat(changeFor) : null,
         cash_register_id: cashRegisterIdForOrder, // AGORA ESTÁ SENDO ATRIBUÍDO CORRETAMENTE
+        notes: notes || null, // Observações do cliente
         status: initialStatus, // Usar o status inicial dinâmico
       })
       .select()
@@ -1862,55 +1865,6 @@ export default function CustomerStore() {
                         </div>
                         {/* FIM SEÇÃO DE DATA E HORÁRIO */}
 
-                        {/* SEÇÃO DE PAGAMENTO */}
-                        {totalMonetary > 0 && (
-                          <div className="space-y-2">
-                            <Label>Forma de Pagamento</Label>
-                            <div className="grid grid-cols-2 gap-2">
-                              {(["pix", "credito", "debito", "dinheiro"] as PaymentMethod[]).map((method) => { // Removido "fidelidade" daqui
-                                const Icon = paymentMethodIcons[method];
-                                return (
-                                  <Button
-                                    key={method}
-                                    variant={paymentMethod === method ? "default" : "outline"}
-                                    onClick={() => setPaymentMethod(method)}
-                                    className="flex flex-col items-center justify-center gap-1 h-16 text-sm"
-                                  >
-                                    <Icon className="h-5 w-5" />
-                                    {paymentMethodLabels[method]}
-                                  </Button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {paymentMethod === "dinheiro" && totalMonetary > 0 && (
-                          <>
-                            <div className="flex items-center gap-2">
-                              <Checkbox
-                                id="needsChange"
-                                checked={needsChange}
-                                onCheckedChange={(checked) => setNeedsChange(checked === true)}
-                              />
-                              <Label htmlFor="needsChange">Precisa de troco?</Label>
-                            </div>
-                            {needsChange && (
-                              <div className="space-y-2">
-                                <Label>Troco para quanto?</Label>
-                                <Input
-                                  type="number"
-                                  step="0.01"
-                                  placeholder="0.00"
-                                  value={changeFor}
-                                  onChange={(e) => setChangeFor(e.target.value)}
-                                />
-                              </div>
-                            )}
-                          </>
-                         )}
-                        {/* FIM SEÇÃO DE PAGAMENTO */}
-
                         {/* SEÇÃO DE ENTREGA */}
                         <div className="space-y-3 border-t pt-4">
                           <div className="flex items-center gap-2">
@@ -2010,6 +1964,68 @@ export default function CustomerStore() {
                           )}
                         </div>
                         {/* FIM SEÇÃO DE ENTREGA */}
+
+                        {/* SEÇÃO DE OBSERVAÇÃO */}
+                        <div className="space-y-2">
+                          <Label htmlFor="notes">Observação</Label>
+                          <Textarea
+                            id="notes"
+                            placeholder="Ex: menos sal, mais assado, ao ponto, entregar no portão..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            className="min-h-[80px]"
+                          />
+                        </div>
+                        {/* FIM SEÇÃO DE OBSERVAÇÃO */}
+
+                        {/* SEÇÃO DE PAGAMENTO */}
+                        {totalMonetary > 0 && (
+                          <div className="space-y-2">
+                            <Label>Forma de Pagamento</Label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {(["pix", "credito", "debito", "dinheiro"] as PaymentMethod[]).map((method) => { // Removido "fidelidade" daqui
+                                const Icon = paymentMethodIcons[method];
+                                return (
+                                  <Button
+                                    key={method}
+                                    variant={paymentMethod === method ? "default" : "outline"}
+                                    onClick={() => setPaymentMethod(method)}
+                                    className="flex flex-col items-center justify-center gap-1 h-16 text-sm"
+                                  >
+                                    <Icon className="h-5 w-5" />
+                                    {paymentMethodLabels[method]}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {paymentMethod === "dinheiro" && totalMonetary > 0 && (
+                          <>
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                id="needsChange"
+                                checked={needsChange}
+                                onCheckedChange={(checked) => setNeedsChange(checked === true)}
+                              />
+                              <Label htmlFor="needsChange">Precisa de troco?</Label>
+                            </div>
+                            {needsChange && (
+                              <div className="space-y-2">
+                                <Label>Troco para quanto?</Label>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  value={changeFor}
+                                  onChange={(e) => setChangeFor(e.target.value)}
+                                />
+                              </div>
+                            )}
+                          </>
+                         )}
+                        {/* FIM SEÇÃO DE PAGAMENTO */}
 
                         {pointsToRedeem > 0 && (
                           <div className="flex items-center justify-between text-sm text-purple-600 font-medium">

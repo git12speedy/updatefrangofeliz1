@@ -13,6 +13,9 @@
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS whatsapp_ai_enabled BOOLEAN DEFAULT FALSE;
 ALTER TABLE stores ADD COLUMN IF NOT EXISTS whatsapp_ai_api_key TEXT;
 
+-- Adicionar campo de observação/notas na tabela orders
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS notes TEXT;
+
 -- Adicionar colunas necessárias na tabela products
 ALTER TABLE products ADD COLUMN IF NOT EXISTS is_packaging BOOLEAN DEFAULT FALSE;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS is_perishable BOOLEAN DEFAULT FALSE;
