@@ -1757,7 +1757,6 @@ export default function PDV() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="customer-name-input">Nome do Cliente</Label>
               <div className="flex gap-2">
                 <Input
                   id="customer-name-input"
@@ -1768,11 +1767,7 @@ export default function PDV() {
                 />
               </div>
             </div>
-
-            <Separator />
-
             <div className="space-y-2">
-              <Label htmlFor="customer-phone-input">Cliente Fidelidade</Label>
               <div className="flex gap-2">
                 <Input
                   id="customer-phone-input"
