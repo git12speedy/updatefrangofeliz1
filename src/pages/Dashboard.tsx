@@ -1089,10 +1089,23 @@ export default function Dashboard() {
               <div className="space-y-2">
                 {availableReservations.map((reservation) => {
                   const customerName = reservation.customers?.name || reservation.customer_name || "Cliente não identificado";
-                  const displayDate = format(parseISO(reservation.created_at), "dd/MM/yyyy", { locale: ptBR });
-                  const displayTime = reservation.pickup_time 
-                    ? format(parseISO(reservation.pickup_time), "HH:mm", { locale: ptBR })
-                    : format(parseISO(reservation.created_at), "HH:mm", { locale: ptBR });
+                  
+                  // Validar e formatar datas com segurança
+                  let displayDate = "Data não disponível";
+                  let displayTime = "Horário não disponível";
+                  
+                  try {
+                    if (reservation.created_at) {
+                      displayDate = format(parseISO(reservation.created_at), "dd/MM/yyyy", { locale: ptBR });
+                      displayTime = format(parseISO(reservation.created_at), "HH:mm", { locale: ptBR });
+                    }
+                    
+                    if (reservation.pickup_time) {
+                      displayTime = format(parseISO(reservation.pickup_time), "HH:mm", { locale: ptBR });
+                    }
+                  } catch (error) {
+                    console.error("Erro ao formatar data:", error);
+                  }
                   
                   return (
                     <div

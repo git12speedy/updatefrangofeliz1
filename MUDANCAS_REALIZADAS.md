@@ -124,8 +124,10 @@ A mensagem de erro quando o caixa não está aberto foi alterada de:
 - Todas as mensagens de erro foram mantidas em português
 - O código mantém a tipagem TypeScript adequada
 
-### Correção de Bug
-**Problema**: Erro de sintaxe ao carregar reservas: "failed to parse filter (not.in.delivered,cancelled)"
+### Correções de Bugs
+
+#### 1. Erro de sintaxe ao carregar reservas
+**Problema**: "failed to parse filter (not.in.delivered,cancelled)"
 
 **Solução**: Substituída a sintaxe `.not("status", "in", ["delivered", "cancelled"])` por duas condições separadas:
 ```typescript
@@ -133,3 +135,23 @@ A mensagem de erro quando o caixa não está aberto foi alterada de:
 .neq("status", "cancelled")
 ```
 Esta é a forma correta de excluir múltiplos valores no Supabase PostgREST.
+
+#### 2. Erro ao formatar datas das reservas
+**Problema**: "Uncaught RangeError: Invalid time value" ao tentar exibir as reservas no diálogo
+
+**Solução**: Adicionada validação com try-catch ao formatar datas:
+```typescript
+try {
+  if (reservation.created_at) {
+    displayDate = format(parseISO(reservation.created_at), "dd/MM/yyyy", { locale: ptBR });
+    displayTime = format(parseISO(reservation.created_at), "HH:mm", { locale: ptBR });
+  }
+  
+  if (reservation.pickup_time) {
+    displayTime = format(parseISO(reservation.pickup_time), "HH:mm", { locale: ptBR });
+  }
+} catch (error) {
+  console.error("Erro ao formatar data:", error);
+}
+```
+Agora exibe mensagens padrão caso as datas sejam inválidas ou nulas.
