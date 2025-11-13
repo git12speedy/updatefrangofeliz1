@@ -1753,57 +1753,50 @@ export default function PDV() {
       <div className="space-y-4">
         <Card className="shadow-soft">
           <CardHeader>
-            <CardTitle>Nome do Cliente</CardTitle>
+            <CardTitle>Identificação</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex gap-2">
-              <Input
-                id="customer-name-input"
-                type="text"
-                placeholder="Nome do cliente (opcional)"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Digite o nome do cliente mesmo sem número de telefone
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-soft">
-          <CardHeader>
-            <CardTitle>Cliente Fidelidade</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex gap-2">
-              <Input
-                id="customer-phone-input" // Added ID for easier targeting
-                type="tel"
-                placeholder="Celular do cliente"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                onKeyDown={(e) => { // Added onKeyDown handler
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleCustomerLookup();
-                  }
-                }}
-                inputMode="numeric"
-                pattern="[0-9]*"
-              />
-              <Button onClick={handleCustomerLookup} size="sm">
-                OK
-              </Button>
-            </div>
-            {customer && (
-              <div className="p-3 bg-primary/10 rounded-lg">
-                <p className="font-medium">{customer.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {customer.points} pontos
-                </p>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  id="customer-name-input"
+                  type="text"
+                  placeholder="Nome do cliente (opcional)"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                />
               </div>
-            )}
+            </div>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  id="customer-phone-input"
+                  type="tel"
+                  placeholder="Celular do cliente"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCustomerLookup();
+                    }
+                  }}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                />
+                <Button onClick={handleCustomerLookup} size="sm">
+                  OK
+                </Button>
+              </div>
+              {customer && (
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <p className="font-medium">{customer.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {customer.points} pontos
+                  </p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
