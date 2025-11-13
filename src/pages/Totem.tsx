@@ -772,9 +772,11 @@ export default function Totem() {
     let finalPaymentMethod = paymentMethodsArray.join(' + '); // Declared with let
 
     let cashRegisterIdForOrder = null;
-    // An order requires an open cash register if it's for delivery OR if it's a pickup/reservation for today.
-    const requiresOpenCashRegister = isDelivery || (reservationDate && isSameDay(reservationDate, new Date()));
-    console.log("Requires open cash register:", requiresOpenCashRegister);
+    // Totem orders ALWAYS require an open cash register, EXCEPT for future reservations
+    // A future reservation is one where the reservation_date is set and is NOT today
+    const isFutureReservation = reservationDate && !isSameDay(reservationDate, new Date());
+    const requiresOpenCashRegister = !isFutureReservation; // Requer caixa aberto se não for reserva futura
+    console.log("Requires open cash register:", requiresOpenCashRegister, "isFutureReservation:", isFutureReservation);
 
     if (requiresOpenCashRegister) { 
       console.log("Attempting to find open cash register for storeId:", storeId);
@@ -803,14 +805,14 @@ export default function Totem() {
         toast({
           variant: "destructive",
           title: "Caixa fechado",
-          description: "Não é possível fazer pedidos imediatos com o caixa fechado.",
+          description: "Não é possível fazer pedidos com o caixa fechado. Por favor, avise um funcionário.",
         });
         return;
       }
     }
     console.log("Final cashRegisterIdForOrder:", cashRegisterIdForOrder);
-    // If requiresOpenCashRegister is false (i.e., it's a future reservation/pickup), cashRegisterIdForOrder remains null.
-    // This is the desired behavior for future reservations.
+    // If it's a future reservation, cashRegisterIdForOrder remains null.
+    // This is the desired behavior - future reservations will be associated with a cash register when one opens.
 
     // Se a data for hoje e o horário estiver vazio, salvamos como null para indicar "agora"
     const finalPickupTime = isSameDay(reservationDate, new Date()) && !pickupTime ? null : pickupTime;
