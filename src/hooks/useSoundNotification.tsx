@@ -36,9 +36,25 @@ export function useSoundNotification() {
     return true;
   });
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
     localStorage.setItem(SOUND_KEY, JSON.stringify(isEnabled));
   }, [isEnabled]);
+
+  // Pré-carregar o som para evitar atraso na primeira notificação
+  const preloadSound = useCallback(() => {
+    if (!audioRef.current) {
+      try {
+        audioRef.current = new Audio('/notification.mp3');
+        audioRef.current.volume = 0.8;
+        audioRef.current.load(); // Força o carregamento do arquivo
+        console.log('Som de notificação pré-carregado');
+      } catch (error) {
+        console.error('Erro ao pré-carregar som:', error);
+      }
+    }
+  }, []);
 
   const toggleSound = useCallback((checked: boolean) => {
     setIsEnabled(checked);
@@ -54,5 +70,5 @@ export function useSoundNotification() {
     }
   }, [isEnabled]);
 
-  return { isEnabled, toggleSound, notify };
+  return { isEnabled, toggleSound, notify, preloadSound };
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, Package, Info, MessageCircle, XCircle, Star, AlertCircle, Volume2, VolumeX } from "lucide-react";
+import { CheckCircle, Clock, Package, Info, MessageCircle, XCircle, Star, AlertCircle, Volume2, VolumeX, Settings } from "lucide-react";
 import { supabase as sb } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSoundNotification } from "@/hooks/useSoundNotification";
@@ -15,6 +15,7 @@ import {
 import RealTimeClock from "@/components/RealTimeClock";
 import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useOrderFlow } from "@/hooks/useOrderFlow"; // Importando useOrderFlow
 import { Enums } from '@/integrations/supabase/types'; // Importando Enums para tipagem
 import { format } from "date-fns"; // Importar format
@@ -93,8 +94,16 @@ export default function Monitor() {
   const [newOrderIds, setNewOrderIds] = useState<string[]>([]); // To highlight new orders
   const [banners, setBanners] = useState<Banner[]>([]); // Estado para os banners
   const { toast } = useToast();
-  const { notify, isEnabled: isSoundEnabled, toggleSound } = useSoundNotification();
+  const { notify, isEnabled: isSoundEnabled, toggleSound, preloadSound } = useSoundNotification();
   const { activeFlow, loading: orderFlowLoading } = useOrderFlow();
+  
+  // New settings states
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showOnlyActiveCashOrders, setShowOnlyActiveCashOrders] = useState(() => {
+    const saved = localStorage.getItem('monitor_showOnlyActiveCash');
+    return saved ? JSON.parse(saved) : false;
+  });
+  const [activeCashRegisterId, setActiveCashRegisterId] = useState<string | null>(null);
 
   // Monitor Settings states
   const [monitorSettings, setMonitorSettings] = useState<MonitorSettings>({
@@ -132,6 +141,38 @@ export default function Monitor() {
       return () => clearTimeout(timer);
     }
   }, [newOrderIds]);
+
+  // Pré-carregar o som ao montar o componente
+  useEffect(() => {
+    preloadSound();
+  }, [preloadSound]);
+
+  // Buscar caixa ativo quando o storeId estiver disponível
+  useEffect(() => {
+    const loadActiveCashRegister = async () => {
+      if (!storeId) return;
+      
+      const { data } = await supabase
+        .from("cash_register")
+        .select("id")
+        .eq("store_id", storeId)
+        .is("closed_at", null)
+        .maybeSingle();
+      
+      if (data) {
+        setActiveCashRegisterId(data.id);
+      }
+    };
+    
+    if (storeId) {
+      loadActiveCashRegister();
+    }
+  }, [storeId]);
+
+  // Salvar preferência de filtro no localStorage
+  useEffect(() => {
+    localStorage.setItem('monitor_showOnlyActiveCash', JSON.stringify(showOnlyActiveCashOrders));
+  }, [showOnlyActiveCashOrders]);
 
   useEffect(() => {
     loadStoreInfo();
@@ -219,7 +260,7 @@ export default function Monitor() {
         supabase.removeChannel(channel);
       };
     }
-  }, [storeId, orderFlowLoading, activeFlow, notify]);
+  }, [storeId, orderFlowLoading, activeFlow, notify, showOnlyActiveCashOrders, activeCashRegisterId]);
 
   const loadStoreInfo = async () => {
     let query = supabase.from("stores" as any).select("id, name, display_name, image_url, monitor_slideshow_delay, monitor_idle_timeout_seconds, monitor_fullscreen_slideshow");
@@ -312,7 +353,7 @@ export default function Monitor() {
       return;
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("orders")
       .select(`
         *,
@@ -330,8 +371,14 @@ export default function Monitor() {
         )
       `)
       .eq("store_id", storeId)
-      .in("status", statusesToFetch)
-      .order("created_at", { ascending: false });
+      .in("status", statusesToFetch);
+    
+    // Filtrar por caixa ativo se a opção estiver ativada
+    if (showOnlyActiveCashOrders && activeCashRegisterId) {
+      query = query.eq("cash_register_id", activeCashRegisterId);
+    }
+    
+    const { data, error } = await query.order("created_at", { ascending: false });
 
     if (error) {
       toast({
@@ -468,20 +515,15 @@ export default function Monitor() {
           <div className="flex items-center gap-4">
             <RealTimeClock />
             
-            {/* Botão de Ativação de Som */}
+            {/* Botão de Configurações */}
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => {
-                toggleSound(!isSoundEnabled);
-                if (!isSoundEnabled) {
-                  notify(); 
-                }
-              }}
-              className={cn("flex items-center gap-2", isSoundEnabled ? "text-success border-success" : "text-muted-foreground")}
+              onClick={() => setShowSettingsDialog(true)}
+              className="flex items-center gap-2"
             >
-              {isSoundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-              {isSoundEnabled ? "Som Ativo" : "Ativar Som"}
+              <Settings className="h-4 w-4" />
+              Configurações
             </Button>
           </div>
         </div>
@@ -622,6 +664,52 @@ export default function Monitor() {
             })}
           </div>
       </div>
+
+      {/* Dialog de Configurações */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Configurações do Monitor</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Toggle de Som */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">Notificação Sonora</label>
+                <p className="text-xs text-muted-foreground">
+                  Tocar som quando novos pedidos chegarem
+                </p>
+              </div>
+              <Switch
+                checked={isSoundEnabled}
+                onCheckedChange={(checked) => {
+                  toggleSound(checked);
+                  if (checked) {
+                    notify(); // Testa o som ao ativar
+                  }
+                }}
+              />
+            </div>
+
+            {/* Toggle de Filtro de Caixa */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">Filtrar por Caixa Ativo</label>
+                <p className="text-xs text-muted-foreground">
+                  {activeCashRegisterId 
+                    ? "Mostrar apenas pedidos do caixa aberto" 
+                    : "Nenhum caixa aberto no momento"}
+                </p>
+              </div>
+              <Switch
+                checked={showOnlyActiveCashOrders}
+                onCheckedChange={setShowOnlyActiveCashOrders}
+                disabled={!activeCashRegisterId}
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

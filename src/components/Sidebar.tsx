@@ -24,6 +24,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
+import NotificationCenter from '@/components/NotificationCenter';
 
 interface NavItem {
   name: string;
@@ -77,7 +78,10 @@ export default function Sidebar() {
     >
       <div className="flex items-center justify-between p-4 h-16">
         {!isCollapsed && (
-          <h2 className="text-xl font-bold text-sidebar-primary truncate">Food Flow</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold text-sidebar-primary truncate">Food Flow</h2>
+            <NotificationCenter />
+          </div>
         )}
         <Button
           variant="ghost"
