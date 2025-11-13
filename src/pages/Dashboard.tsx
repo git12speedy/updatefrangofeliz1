@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { DollarSign, Package, ShoppingCart, XCircle, Store, Users, Calendar as CalendarIcon, List, History, Download, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { supabase as sb } from "@/integrations/supabase/client";
@@ -62,6 +63,17 @@ interface CashRegisterEntry {
   final_amount: number | null;
 }
 
+interface ReservationOrder {
+  id: string;
+  order_number: string;
+  customer_name?: string;
+  created_at: string;
+  pickup_time?: string;
+  customers?: {
+    name: string;
+  };
+}
+
 export default function Dashboard() {
   const [initialAmount, setInitialAmount] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -80,6 +92,12 @@ export default function Dashboard() {
   const { profile, user, isAdmin } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  // New states for reservation selection
+  const [showReservationSelectionDialog, setShowReservationSelectionDialog] = useState(false);
+  const [availableReservations, setAvailableReservations] = useState<ReservationOrder[]>([]);
+  const [selectedReservationIds, setSelectedReservationIds] = useState<string[]>([]);
+  const [newCashRegisterId, setNewCashRegisterId] = useState<string | null>(null);
 
   // New states for "Todos os Pedidos"
   const [allOrders, setAllOrders] = useState<Order[]>([]);
@@ -265,33 +283,86 @@ export default function Dashboard() {
       });
       setInitialAmount("");
       setIsDialogOpen(false);
-      loadCashRegister();
-      loadCashRegisterHistory(); // Reload history to show new open cash register
-
-      // Associate relevant reservation orders with this new cash register
-      if (newCashRegister) {
-        const { error: updateOrdersError } = await supabase
-          .from("orders")
-          .update({ cash_register_id: newCashRegister.id })
-          .eq("store_id", profile.store_id)
-          .is("cash_register_id", null) // Only unassigned orders
-          .not("status", "in", ["delivered", "cancelled"]) // Only active orders (not delivered or cancelled)
-          .lte("reservation_date", format(new Date(newCashRegister.opened_at), "yyyy-MM-dd")); // Reservations for today or past
-
-        if (updateOrdersError) {
-          console.error("Erro ao associar reservas ao novo caixa:", updateOrdersError.message);
-          toast({
-            title: "Aviso",
-            description: "Algumas reservas podem não ter sido associadas automaticamente. Verifique manualmente.",
-          });
-        } else {
-          toast({
-            title: "Reservas associadas!",
-            description: "Reservas ativas com data de retirada/entrega até hoje foram vinculadas ao novo caixa.",
-          });
-        }
-      }
+      
+      // Store the new cash register ID and load available reservations
+      setNewCashRegisterId(newCashRegister.id);
+      await loadAvailableReservations();
+      setShowReservationSelectionDialog(true);
     }
+  };
+  
+  const loadAvailableReservations = async () => {
+    if (!profile?.store_id) return;
+    
+    const { data, error } = await supabase
+      .from("orders")
+      .select(`
+        id,
+        order_number,
+        customer_name,
+        created_at,
+        pickup_time,
+        customers (
+          name
+        )
+      `)
+      .eq("store_id", profile.store_id)
+      .is("cash_register_id", null)
+      .not("status", "in", ["delivered", "cancelled"])
+      .order("created_at", { ascending: false });
+    
+    if (error) {
+      console.error("Erro ao carregar reservas disponíveis:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar reservas",
+        description: error.message,
+      });
+    } else {
+      setAvailableReservations(data || []);
+    }
+  };
+  
+  const handleAssociateReservations = async () => {
+    if (!newCashRegisterId || selectedReservationIds.length === 0) {
+      setShowReservationSelectionDialog(false);
+      loadCashRegister();
+      loadCashRegisterHistory();
+      return;
+    }
+    
+    const { error: updateOrdersError } = await supabase
+      .from("orders")
+      .update({ cash_register_id: newCashRegisterId })
+      .in("id", selectedReservationIds);
+    
+    if (updateOrdersError) {
+      console.error("Erro ao associar reservas ao caixa:", updateOrdersError.message);
+      toast({
+        variant: "destructive",
+        title: "Erro ao associar reservas",
+        description: updateOrdersError.message,
+      });
+    } else {
+      toast({
+        title: "Reservas associadas!",
+        description: `${selectedReservationIds.length} reserva(s) foram vinculadas ao caixa.`,
+      });
+    }
+    
+    setShowReservationSelectionDialog(false);
+    setSelectedReservationIds([]);
+    setNewCashRegisterId(null);
+    loadCashRegister();
+    loadCashRegisterHistory();
+  };
+  
+  const toggleReservationSelection = (reservationId: string) => {
+    setSelectedReservationIds(prev => 
+      prev.includes(reservationId)
+        ? prev.filter(id => id !== reservationId)
+        : [...prev, reservationId]
+    );
   };
 
   const calculateSalesSummary = async (cashRegisterEntry: CashRegisterEntry) => {
@@ -999,6 +1070,77 @@ export default function Dashboard() {
                 Exportar CSV
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog for Reservation Selection */}
+      <Dialog open={showReservationSelectionDialog} onOpenChange={setShowReservationSelectionDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Selecionar Reservas</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione quais reservas deseja vincular a este caixa:
+            </p>
+            {availableReservations.length > 0 ? (
+              <div className="space-y-2">
+                {availableReservations.map((reservation) => {
+                  const customerName = reservation.customers?.name || reservation.customer_name || "Cliente não identificado";
+                  const displayDate = format(parseISO(reservation.created_at), "dd/MM/yyyy", { locale: ptBR });
+                  const displayTime = reservation.pickup_time 
+                    ? format(parseISO(reservation.pickup_time), "HH:mm", { locale: ptBR })
+                    : format(parseISO(reservation.created_at), "HH:mm", { locale: ptBR });
+                  
+                  return (
+                    <div
+                      key={reservation.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                      onClick={() => toggleReservationSelection(reservation.id)}
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <Checkbox
+                          id={`reservation-${reservation.id}`}
+                          checked={selectedReservationIds.includes(reservation.id)}
+                          onCheckedChange={() => toggleReservationSelection(reservation.id)}
+                        />
+                        <div>
+                          <p className="font-medium">{customerName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Pedido: {reservation.order_number}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Data: {displayDate} • Horário: {displayTime}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">
+                Nenhuma reserva disponível para vincular.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowReservationSelectionDialog(false);
+                setSelectedReservationIds([]);
+                setNewCashRegisterId(null);
+                loadCashRegister();
+                loadCashRegisterHistory();
+              }}
+            >
+              Pular
+            </Button>
+            <Button onClick={handleAssociateReservations}>
+              Confirmar Seleção ({selectedReservationIds.length})
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

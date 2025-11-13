@@ -1191,8 +1191,10 @@ export default function CustomerStore() {
 
     // --- Lógica para obter cash_register_id ---
     let cashRegisterIdForOrder = null;
-    // An order requires an open cash register if it's for delivery OR if it's a pickup/reservation for today.
-    const requiresOpenCashRegister = isDelivery || (reservationDate && isSameDay(reservationDate, new Date()));
+    // An order requires an open cash register only if it's a pickup/reservation for today (not delivery)
+    // Deliveries can be scheduled for future dates without an open cash register
+    const isTodayOrder = reservationDate && isSameDay(reservationDate, new Date());
+    const requiresOpenCashRegister = isTodayOrder && !isDelivery;
     console.log("Requires open cash register:", requiresOpenCashRegister);
 
     if (requiresOpenCashRegister) { 
@@ -1222,14 +1224,14 @@ export default function CustomerStore() {
         toast({
           variant: "destructive",
           title: "Caixa fechado",
-          description: "Não é possível fazer pedidos imediatos com o caixa fechado. Por favor, entre em contato com a loja.",
+          description: "Não é possível fazer pedidos para retirada imediata com o caixa fechado. Por favor, entre em contato com a loja.",
         });
         return;
       }
     }
     console.log("Final cashRegisterIdForOrder:", cashRegisterIdForOrder);
-    // If requiresOpenCashRegister is false (i.e., it's a future reservation/pickup), cashRegisterIdForOrder remains null.
-    // This is the desired behavior for future reservations.
+    // If requiresOpenCashRegister is false (i.e., it's a future reservation or delivery), cashRegisterIdForOrder remains null.
+    // This is the desired behavior for future orders and deliveries.
     // --- Fim da lógica cash_register_id ---
 
     // Determinar o status inicial dinamicamente
