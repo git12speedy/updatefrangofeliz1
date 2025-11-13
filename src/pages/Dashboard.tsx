@@ -69,6 +69,7 @@ interface ReservationOrder {
   customer_name?: string;
   created_at: string;
   pickup_time?: string;
+  reservation_date?: string;
   customers?: {
     name: string;
   };
@@ -302,6 +303,7 @@ export default function Dashboard() {
         customer_name,
         created_at,
         pickup_time,
+        reservation_date,
         customers (
           name
         )
@@ -1095,13 +1097,24 @@ export default function Dashboard() {
                   let displayTime = "Horário não disponível";
                   
                   try {
-                    if (reservation.created_at) {
+                    // Priorizar reservation_date para a data da reserva
+                    if (reservation.reservation_date) {
+                      // Para evitar problemas de timezone, parsear a data como string diretamente
+                      const dateParts = reservation.reservation_date.split('-');
+                      if (dateParts.length === 3) {
+                        const [year, month, day] = dateParts;
+                        displayDate = `${day}/${month}/${year}`;
+                      }
+                    } else if (reservation.created_at) {
+                      // Fallback para created_at se não houver reservation_date
                       displayDate = format(parseISO(reservation.created_at), "dd/MM/yyyy", { locale: ptBR });
-                      displayTime = format(parseISO(reservation.created_at), "HH:mm", { locale: ptBR });
                     }
                     
+                    // Usar pickup_time para o horário se disponível
                     if (reservation.pickup_time) {
                       displayTime = format(parseISO(reservation.pickup_time), "HH:mm", { locale: ptBR });
+                    } else if (reservation.created_at) {
+                      displayTime = format(parseISO(reservation.created_at), "HH:mm", { locale: ptBR });
                     }
                   } catch (error) {
                     console.error("Erro ao formatar data:", error);

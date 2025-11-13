@@ -25,6 +25,16 @@ import { Switch } from "@/components/ui/switch"; // Importando Switch para confi
 
 const supabase: any = sb;
 
+// Função auxiliar para parsear datas no formato YYYY-MM-DD sem problemas de timezone
+const parseDateString = (dateString: string): string => {
+  const parts = dateString.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  }
+  return dateString;
+};
+
 interface Order {
   id: string;
   order_number: string;
@@ -459,21 +469,11 @@ export default function OrderPanel() {
     let reservationDateTime = '';
     if (order.reservation_date && order.pickup_time) {
       // Tem data e horário
-      const reservationDate = new Date(order.reservation_date);
-      const dateStr = reservationDate.toLocaleDateString('pt-BR', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric'
-      });
+      const dateStr = parseDateString(order.reservation_date);
       reservationDateTime = `${dateStr}, ${order.pickup_time}`;
     } else if (order.reservation_date) {
       // Tem apenas data
-      const reservationDate = new Date(order.reservation_date);
-      reservationDateTime = reservationDate.toLocaleDateString('pt-BR', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric'
-      });
+      reservationDateTime = parseDateString(order.reservation_date);
     } else if (order.pickup_time) {
       // Tem apenas horário
       reservationDateTime = order.pickup_time;
@@ -602,7 +602,7 @@ export default function OrderPanel() {
               <div class="divider"></div>
               <div class="section">
                 <div class="section-title">RESERVA</div>
-                <div>Data: ${new Date(order.reservation_date).toLocaleDateString('pt-BR')}</div>
+                <div>Data: ${parseDateString(order.reservation_date)}</div>
               </div>
             ` : ''}
 
@@ -855,7 +855,7 @@ export default function OrderPanel() {
                   const customerName = order.customers?.name || order.customer_name || 'Cliente Anônimo';
                   const pickupTime = order.pickup_time;
                   const isReservationOrder = !!order.reservation_date; // Verifica se é um pedido de reserva
-                  const formattedDate = order.reservation_date ? format(new Date(order.reservation_date), 'dd/MM', { locale: ptBR }) : null;
+                  const formattedDate = order.reservation_date ? parseDateString(order.reservation_date).substring(0, 5) : null; // Pega apenas DD/MM
 
                   // Construção do cabeçalho no formato: Nome | Horário | Data
                   const headerText = [
@@ -917,7 +917,7 @@ export default function OrderPanel() {
                                     <>
                                       <div><strong>Retirada:</strong> Sim</div>
                                       {order.pickup_time && <div><strong>Horário:</strong> {order.pickup_time}</div>}
-                                      {order.reservation_date && <div><strong>Data da Reserva:</strong> {new Date(order.reservation_date).toLocaleDateString()}</div>}
+                                      {order.reservation_date && <div><strong>Data da Reserva:</strong> {parseDateString(order.reservation_date)}</div>}
                                     </>
                                   )}
                                   <div className="pt-2 border-t">

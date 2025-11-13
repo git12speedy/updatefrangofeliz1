@@ -25,6 +25,16 @@ import { cn } from "@/lib/utils"; // Importar cn para classes condicionais
 
 const supabase: any = sb;
 
+// Função auxiliar para parsear datas no formato YYYY-MM-DD sem problemas de timezone
+const parseDateString = (dateString: string): string => {
+  const parts = dateString.split('-');
+  if (parts.length === 3) {
+    const [year, month, day] = parts;
+    return `${day}/${month}/${year}`;
+  }
+  return dateString;
+};
+
 interface Order {
   id: string;
   order_number: string;
@@ -548,7 +558,7 @@ export default function Monitor() {
                     const customerName = order.customers?.name || order.customer_name || 'Cliente Anônimo';
                     const pickupTime = order.pickup_time;
                     const isReservationOrder = !!order.reservation_date;
-                    const formattedDate = order.reservation_date ? format(new Date(order.reservation_date), 'dd/MM', { locale: ptBR }) : null;
+                    const formattedDate = order.reservation_date ? parseDateString(order.reservation_date).substring(0, 5) : null; // Pega apenas DD/MM
 
                     // Construção do cabeçalho no formato: Nome | Horário | Data
                     const headerText = [
@@ -611,7 +621,7 @@ export default function Monitor() {
                                       <>
                                         <div><strong>Retirada:</strong> Sim</div>
                                         {order.pickup_time && <div><strong>Horário:</strong> {order.pickup_time}</div>}
-                                        {order.reservation_date && <div><strong>Data da Reserva:</strong> {new Date(order.reservation_date).toLocaleDateString()}</div>}
+                                        {order.reservation_date && <div><strong>Data da Reserva:</strong> {parseDateString(order.reservation_date)}</div>}
                                       </>
                                     )}
                                     <div className="pt-2 border-t">
