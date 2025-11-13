@@ -1,30 +1,178 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bell, X } from "lucide-react";
-import { useToast } from "@/hooks/use-toast"; // Assuming useToast is for general app toasts
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase as sb } from "@/integrations/supabase/client";
+import { differenceInDays, parseISO, startOfDay } from "date-fns";
+
+const supabase: any = sb;
 
 interface Notification {
   id: string;
   message: string;
   timestamp: string;
+  type: 'order' | 'stock' | 'task';
+  read: boolean;
 }
 
 export default function NotificationCenter() {
   const { toast } = useToast();
-  const [notifications, setNotifications] = useState<Notification[]>([
-    { id: "1", message: "Novo pedido #PED-12345 chegou!", timestamp: "2024-08-01T10:00:00Z" },
-    { id: "2", message: "Estoque do Frango Assado está baixo.", timestamp: "2024-08-01T09:30:00Z" },
-    { id: "3", message: "Lembrete: Limpar a chapa hoje.", timestamp: "2024-07-31T18:00:00Z" },
-  ]);
+  const { profile } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [lastOrderCheck, setLastOrderCheck] = useState<string | null>(null);
+  const [notifiedTasks, setNotifiedTasks] = useState<Set<string>>(new Set());
+
+  // Carregar preferências de notificação
+  const getTaskNotificationEnabled = useCallback(() => {
+    const saved = localStorage.getItem('task_notifications_enabled');
+    return saved ? JSON.parse(saved) : true; // Ativado por padrão
+  }, []);
+
+  // Verificar estoque baixo
+  const checkLowStock = useCallback(async () => {
+    if (!profile?.store_id) return;
+
+    const { data: store } = await supabase
+      .from('stores')
+      .select('ifood_stock_alert_enabled, ifood_stock_alert_threshold')
+      .eq('id', profile.store_id)
+      .single();
+
+    if (!store?.ifood_stock_alert_enabled) return;
+
+    const { data: products } = await supabase
+      .from('products')
+      .select('id, name, stock_quantity')
+      .eq('store_id', profile.store_id)
+      .eq('active', true)
+      .lte('stock_quantity', store.ifood_stock_alert_threshold || 0);
+
+    if (products && products.length > 0) {
+      products.forEach(product => {
+        const existingNotif = notifications.find(n => 
+          n.type === 'stock' && n.message.includes(product.name)
+        );
+        
+        if (!existingNotif) {
+          const newNotif: Notification = {
+            id: `stock-${product.id}-${Date.now()}`,
+            message: `Estoque baixo: ${product.name} (${product.stock_quantity} unidades)`,
+            timestamp: new Date().toISOString(),
+            type: 'stock',
+            read: false,
+          };
+          setNotifications(prev => [newNotif, ...prev]);
+        }
+      });
+    }
+  }, [profile, notifications]);
+
+  // Verificar tarefas próximas ao prazo
+  const checkUpcomingTasks = useCallback(async () => {
+    if (!profile?.store_id || !getTaskNotificationEnabled()) return;
+
+    const { data: tasks } = await supabase
+      .from('tasks')
+      .select('id, title, due_date')
+      .eq('store_id', profile.store_id)
+      .not('due_date', 'is', null);
+
+    if (tasks && tasks.length > 0) {
+      const today = startOfDay(new Date());
+      
+      tasks.forEach(task => {
+        if (!task.due_date) return;
+        
+        const dueDate = startOfDay(parseISO(task.due_date));
+        const daysUntilDue = differenceInDays(dueDate, today);
+        
+        // Notificar 1 dia antes
+        if (daysUntilDue === 1 && !notifiedTasks.has(`${task.id}-1day`)) {
+          const newNotif: Notification = {
+            id: `task-${task.id}-1day-${Date.now()}`,
+            message: `Tarefa "${task.title}" vence amanhã!`,
+            timestamp: new Date().toISOString(),
+            type: 'task',
+            read: false,
+          };
+          setNotifications(prev => [newNotif, ...prev]);
+          setNotifiedTasks(prev => new Set(prev).add(`${task.id}-1day`));
+        }
+        
+        // Notificar no dia
+        if (daysUntilDue === 0 && !notifiedTasks.has(`${task.id}-today`)) {
+          const newNotif: Notification = {
+            id: `task-${task.id}-today-${Date.now()}`,
+            message: `Tarefa "${task.title}" vence hoje!`,
+            timestamp: new Date().toISOString(),
+            type: 'task',
+            read: false,
+          };
+          setNotifications(prev => [newNotif, ...prev]);
+          setNotifiedTasks(prev => new Set(prev).add(`${task.id}-today`));
+        }
+      });
+    }
+  }, [profile, getTaskNotificationEnabled, notifiedTasks]);
+
+  // Monitorar novos pedidos
+  useEffect(() => {
+    if (!profile?.store_id) return;
+
+    const channel = supabase
+      .channel('new-orders-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+          filter: `store_id=eq.${profile.store_id}`,
+        },
+        (payload: any) => {
+          const order = payload.new;
+          const newNotif: Notification = {
+            id: `order-${order.id}-${Date.now()}`,
+            message: `Novo pedido #${order.order_number} recebido!`,
+            timestamp: order.created_at,
+            type: 'order',
+            read: false,
+          };
+          setNotifications(prev => [newNotif, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.store_id]);
+
+  // Verificar estoque e tarefas periodicamente
+  useEffect(() => {
+    if (!profile?.store_id) return;
+
+    // Verificação inicial
+    checkLowStock();
+    checkUpcomingTasks();
+
+    // Verificar a cada 5 minutos
+    const interval = setInterval(() => {
+      checkLowStock();
+      checkUpcomingTasks();
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [profile?.store_id, checkLowStock, checkUpcomingTasks]);
 
   const handleDismiss = (id: string) => {
     setNotifications(prev => prev.filter(notif => notif.id !== id));
-    toast({ title: "Notificação dispensada." });
   };
 
   const handleClearAll = () => {

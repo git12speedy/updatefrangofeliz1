@@ -4,7 +4,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, LayoutDashboard, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, LayoutDashboard, Loader2, Settings } from "lucide-react";
 import { supabase as sb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -26,8 +27,18 @@ export default function Tasks() {
   const [loading, setLoading] = useState(true);
   const [showAddColumnDialog, setShowAddColumnDialog] = useState(false);
   const [newColumnName, setNewColumnName] = useState("");
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [taskNotificationsEnabled, setTaskNotificationsEnabled] = useState(() => {
+    const saved = localStorage.getItem('task_notifications_enabled');
+    return saved ? JSON.parse(saved) : true;
+  });
 
   const supabase = sb;
+
+  // Salvar preferência de notificações
+  useEffect(() => {
+    localStorage.setItem('task_notifications_enabled', JSON.stringify(taskNotificationsEnabled));
+  }, [taskNotificationsEnabled]);
 
   const loadColumnsAndTasks = useCallback(async () => {
     if (!profile?.store_id) return;
@@ -429,31 +440,37 @@ export default function Tasks() {
           <h1 className="text-3xl font-bold text-foreground">Tarefas</h1>
           <p className="text-muted-foreground">Organize suas atividades no formato Kanban</p>
         </div>
-        <Dialog open={showAddColumnDialog} onOpenChange={setShowAddColumnDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Coluna
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Criar Nova Coluna</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Input
-                placeholder="Nome da coluna"
-                value={newColumnName}
-                onChange={(e) => setNewColumnName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAddColumn()}
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowAddColumnDialog(false)}>Cancelar</Button>
-              <Button onClick={handleAddColumn}>Criar</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowSettingsDialog(true)}>
+            <Settings className="h-4 w-4 mr-2" />
+            Configurações
+          </Button>
+          <Dialog open={showAddColumnDialog} onOpenChange={setShowAddColumnDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Coluna
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Criar Nova Coluna</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <Input
+                  placeholder="Nome da coluna"
+                  value={newColumnName}
+                  onChange={(e) => setNewColumnName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddColumn()}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowAddColumnDialog(false)}>Cancelar</Button>
+                <Button onClick={handleAddColumn}>Criar</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <DragDropContext onDragEnd={onDragEnd}>
@@ -483,6 +500,35 @@ export default function Tasks() {
           )}
         </Droppable>
       </DragDropContext>
+
+      {/* Dialog de Configurações */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Configurações de Tarefas</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Toggle de Notificações de Tarefas */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <label className="text-sm font-medium">Notificações de Tarefas</label>
+                <p className="text-xs text-muted-foreground">
+                  Receber notificações 1 dia antes e no dia de vencimento das tarefas
+                </p>
+              </div>
+              <Switch
+                checked={taskNotificationsEnabled}
+                onCheckedChange={setTaskNotificationsEnabled}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowSettingsDialog(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
