@@ -38,6 +38,9 @@ Quando um caixa era aberto no PDV, todas as reservas disponíveis eram automatic
 
 4. **Novas funções adicionadas**:
    - `loadAvailableReservations()`: Carrega todas as reservas que ainda não foram associadas a um caixa
+     - Filtra pedidos sem caixa associado (`cash_register_id` null)
+     - Exclui pedidos com status "delivered" ou "cancelled"
+     - Ordena por data de criação (mais recentes primeiro)
    - `handleAssociateReservations()`: Associa as reservas selecionadas ao caixa aberto
    - `toggleReservationSelection()`: Alterna a seleção de uma reserva
 
@@ -120,3 +123,13 @@ A mensagem de erro quando o caixa não está aberto foi alterada de:
 - O import do componente `Checkbox` foi adicionado no Dashboard.tsx
 - Todas as mensagens de erro foram mantidas em português
 - O código mantém a tipagem TypeScript adequada
+
+### Correção de Bug
+**Problema**: Erro de sintaxe ao carregar reservas: "failed to parse filter (not.in.delivered,cancelled)"
+
+**Solução**: Substituída a sintaxe `.not("status", "in", ["delivered", "cancelled"])` por duas condições separadas:
+```typescript
+.neq("status", "delivered")
+.neq("status", "cancelled")
+```
+Esta é a forma correta de excluir múltiplos valores no Supabase PostgREST.

@@ -308,7 +308,8 @@ export default function Dashboard() {
       `)
       .eq("store_id", profile.store_id)
       .is("cash_register_id", null)
-      .not("status", "in", ["delivered", "cancelled"])
+      .neq("status", "delivered")
+      .neq("status", "cancelled")
       .order("created_at", { ascending: false });
     
     if (error) {
