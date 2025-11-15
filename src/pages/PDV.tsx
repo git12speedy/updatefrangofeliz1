@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -725,15 +725,27 @@ export default function PDV() {
   };
 
   // NOVO: Cálculo do subtotal monetário e total de pontos a serem resgatados
-  const monetarySubtotal = cart.reduce((sum, item) => 
-    sum + (item.isRedeemedWithPoints ? 0 : (item.price * item.quantity)), 0
-  );
-  const pointsToRedeem = cart.reduce((sum, item) => 
-    sum + (item.isRedeemedWithPoints ? (item.redemption_points_cost * item.quantity) : 0), 0
-  );
+  const monetarySubtotal = useMemo(() => {
+    return cart.reduce((sum, item) => 
+      sum + (item.isRedeemedWithPoints ? 0 : (item.price * item.quantity)), 0
+    );
+  }, [cart]);
 
-  const deliveryAmount = isDelivery && deliveryFee ? parseFloat(deliveryFee) : 0;
-  const totalMonetary = monetarySubtotal + deliveryAmount; // Total a ser pago em dinheiro/cartão/pix
+  const pointsToRedeem = useMemo(() => {
+    return cart.reduce((sum, item) => 
+      sum + (item.isRedeemedWithPoints ? (item.redemption_points_cost * item.quantity) : 0), 0
+    );
+  }, [cart]);
+
+  const deliveryAmount = useMemo(() => {
+    if (!isDelivery || !deliveryFee) return 0;
+    const parsed = parseFloat(deliveryFee);
+    return isNaN(parsed) ? 0 : parsed;
+  }, [isDelivery, deliveryFee]);
+
+  const totalMonetary = useMemo(() => {
+    return monetarySubtotal + deliveryAmount;
+  }, [monetarySubtotal, deliveryAmount]); // Total a ser pago em dinheiro/cartão/pix
 
   const printOrder = (orderNumber: string) => {
     if (!printEnabled) {
@@ -2107,9 +2119,9 @@ export default function PDV() {
                       <span>R$ ${deliveryAmount.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-lg font-semibold">
+                  <div className="flex items-center justify-between text-lg font-semibold" data-testid="cart-total">
                     <span>Total:</span>
-                    <span className="text-primary">R$ {totalMonetary.toFixed(2)}</span>
+                    <span className="text-primary" data-testid="cart-total-value">R$ {totalMonetary.toFixed(2)}</span>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-2">
