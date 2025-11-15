@@ -1820,7 +1820,10 @@ export default function PDV() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap items-center">
+            <div className="text-lg font-bold text-primary mr-auto" data-testid="cart-total">
+              TOTAL: R$ {totalMonetary.toFixed(2)}
+            </div>
             {(["presencial", "whatsapp", "ifood"] as OrderSource[]).map((s) => {
               const Icon = sourceIcons[s];
               return (
@@ -2119,10 +2122,6 @@ export default function PDV() {
                       <span>R$ ${deliveryAmount.toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="flex items-center justify-between text-lg font-semibold" data-testid="cart-total">
-                    <span>Total:</span>
-                    <span className="text-primary" data-testid="cart-total-value">R$ {totalMonetary.toFixed(2)}</span>
-                  </div>
                   
                   <div className="grid grid-cols-2 gap-2">
                     <Button variant="outline" onClick={clearCart}>
