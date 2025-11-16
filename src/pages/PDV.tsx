@@ -929,17 +929,17 @@ export default function PDV() {
               ${paymentMethod === "dinheiro" && changeFor ? `<div><strong>Troco para:</strong> R$ ${parseFloat(changeFor).toFixed(2)}</div>` : ''}
             </div>
 
-            <div class="total">
+            <div className="total">
               TOTAL: R$ ${totalMonetary.toFixed(2)}
             </div>
 
             ${pointsToRedeem > 0 ? `
-              <div class="total">
+              <div className="total">
                 PONTOS RESGATADOS: ${pointsToRedeem} pts
               </div>
             ` : ''}
 
-            <div class="footer">
+            <div className="footer">
               Obrigado pela preferência!
             </div>
           </div>
@@ -1824,6 +1824,12 @@ export default function PDV() {
             <div className="text-lg font-bold text-primary mr-auto" data-testid="cart-total">
               TOTAL: R$ {totalMonetary.toFixed(2)}
             </div>
+            {pointsToRedeem > 0 && (
+                <div className="flex items-center justify-between text-sm text-purple-600 font-medium">
+                    <span>Pontos a Resgatar:</span>
+                    <span>{pointsToRedeem} pts</span>
+                </div>
+            )}
             {(["presencial", "whatsapp", "ifood"] as OrderSource[]).map((s) => {
               const Icon = sourceIcons[s];
               return (
