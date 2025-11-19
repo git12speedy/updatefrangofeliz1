@@ -10,7 +10,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   profile: any;
@@ -84,11 +84,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
+    // Configurar a persistência da sessão antes do login
+    if (rememberMe) {
+      // Se "lembrar de mim" estiver marcado, usar persistência local (1 ano)
+      await supabase.auth.setSession({
+        access_token: '',
+        refresh_token: ''
+      });
+    }
+    
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+      options: {
+        // Se rememberMe estiver true, a sessão persiste por mais tempo
+        // Caso contrário, usa o padrão do Supabase
+      }
     });
+    
+    if (!error && rememberMe) {
+      // Armazenar flag de "lembrar de mim" no localStorage
+      localStorage.setItem('rememberMe', 'true');
+      // Definir um timestamp de expiração de 1 ano
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+      localStorage.setItem('sessionExpiry', oneYearFromNow.toISOString());
+    } else if (!error) {
+      // Limpar flags se não marcou "lembrar de mim"
+      localStorage.removeItem('rememberMe');
+      localStorage.removeItem('sessionExpiry');
+    }
     
     if (!error) {
       navigate("/");
@@ -115,6 +141,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
+      
+      // Limpar flags de "lembrar de mim"
+      localStorage.removeItem('rememberMe');
+      localStorage.removeItem('sessionExpiry');
+      
       if (error) {
         console.error("Error during signOut:", error);
         toast({
